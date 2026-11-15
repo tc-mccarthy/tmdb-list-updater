@@ -225,3 +225,7 @@ __marimo__/
 
 # Installed dependencies
 /node_modules/
+
+# Application source overrides the inherited generic library exclusion.
+!/lib/
+!/lib/**
