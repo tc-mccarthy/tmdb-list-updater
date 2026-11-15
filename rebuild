@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Purpose: Build and run one sync, stream logs, and return its exit status.
+# Usage: ./rebuild (Compose reads runtime settings from .env or the shell).
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
+mkdir -p storage
+docker compose build
+docker compose up --force-recreate --abort-on-container-exit --exit-code-from tmdb-list-updater

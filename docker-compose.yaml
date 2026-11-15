@@ -1,0 +1,22 @@
+# Purpose: Run one CSV-to-TMDB sync; no daemon, ports, or external network.
+services:
+  tmdb-list-updater:
+    image: tmdb-list-updater:local
+    build: .
+    init: true
+    restart: "no"
+    volumes:
+      # Inputs are never modified by the container.
+      - ./storage:/usr/app/storage:ro
+    environment:
+      TMDB_LIST_URL: ${TMDB_LIST_URL:-}
+      TMDB_ACCESS_TOKEN: ${TMDB_ACCESS_TOKEN:-}
+      CSV_PATH: ${CSV_PATH:-/usr/app/storage/movies.csv}
+      UPDATE_MODE: ${UPDATE_MODE:-append}
+      TMDB_MEDIA_TYPE: ${TMDB_MEDIA_TYPE:-movie}
+      DRY_RUN: ${DRY_RUN:-false}
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"

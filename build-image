@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Purpose: Build a tagged image; push only when PUSH_IMAGE=true.
+# Usage: IMAGE_REPOSITORY=registry/owner/tmdb-list-updater ./build-image
+# Environment: IMAGE_TAG overrides the timestamp tag; PUSH_IMAGE defaults false.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
+: "${IMAGE_REPOSITORY:?Set IMAGE_REPOSITORY to the target image repository}"
+IMAGE_TAG="${IMAGE_TAG:-build-$(git rev-parse --short HEAD)-$(date -u '+%Y%m%d%H%M%S')}"
+case "${PUSH_IMAGE:-false}" in true|false) ;; *) echo 'PUSH_IMAGE must be true or false' >&2; exit 1 ;; esac
+docker build -t "$IMAGE_REPOSITORY:$IMAGE_TAG" .
+if [[ "${PUSH_IMAGE:-false}" == true ]]; then
+  docker push "$IMAGE_REPOSITORY:$IMAGE_TAG"
+fi
+printf 'BUILD COMPLETE: %s:%s\n' "$IMAGE_REPOSITORY" "$IMAGE_TAG"

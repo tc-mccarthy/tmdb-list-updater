@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Purpose: Execute one sync; forward signals and exit status directly to Docker.
+set -euo pipefail
+exec node /usr/app/index.js

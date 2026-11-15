@@ -1,0 +1,26 @@
+{
+  "name": "tmdb-list-updater",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "yarn@1.22.22",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test",
+    "test:regression": "node --test tests/regression/*.test.js",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "csv-parse": "6.1.0"
+  },
+  "devDependencies": {
+    "eslint": "9.39.1",
+    "@eslint/js": "9.39.1",
+    "globals": "16.5.0",
+    "prettier": "3.6.2"
+  }
+}

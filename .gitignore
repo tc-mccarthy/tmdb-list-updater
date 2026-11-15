@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local CSV inputs and runtime credentials
+/storage/
+.env
+.env.*
+!.env.example
+
+# Installed dependencies
+/node_modules/

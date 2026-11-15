@@ -1,0 +1,6 @@
+# Purpose: Skip dependencies, credentials, lockfiles and local CSV inputs.
+node_modules/
+storage/
+yarn.lock
+.env
+.env.*

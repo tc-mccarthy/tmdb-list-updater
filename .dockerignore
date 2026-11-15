@@ -1,0 +1,8 @@
+# Purpose: Keep secrets, local CSVs, and development artifacts out of images.
+.git
+.env
+.env.*
+storage
+node_modules
+tests
+docs
