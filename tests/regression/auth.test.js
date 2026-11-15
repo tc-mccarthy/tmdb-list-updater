@@ -16,13 +16,18 @@ async function freePort() {
   await new Promise((resolve) => server.close(resolve));
   return port;
 }
-for (const scenario of ['approve', 'deny', 'timeout', 'expired-request', 'bad-exchange']) {
+for (const scenario of ['approve', 'expired-cache', 'revoked-cache', 'reauthorize', 'deny', 'timeout', 'expired-request', 'bad-exchange']) {
   test(`authorization: ${scenario}`, async () => {
     const directory = await mkdtemp(join(tmpdir(), 'tmdb-flow-'));
     const port = await freePort();
     let callback;
     let callbacks;
+    let revoked = scenario === 'revoked-cache';
     const config = authSettings({ TMDB_APPLICATION_TOKEN: 'application-secret', TOKEN_STORE_PATH: directory, AUTH_PORT: String(port), TMDB_CALLBACK_URL: `http://localhost:${port}/auth/callback`, AUTH_TIMEOUT_SECONDS: '1' });
+    if (['expired-cache', 'revoked-cache', 'reauthorize'].includes(scenario)) {
+      await saveToken(directory, { access_token: 'old-user', account_id: 'account', created_at: new Date().toISOString(), expires_at: scenario === 'expired-cache' ? '2000-01-01T00:00:00Z' : null });
+    }
+    if (scenario === 'reauthorize') config.reauthorize = true;
     const fetchImpl = async (url, options) => {
       if (url.endsWith('/request_token')) {
         assert.equal(options.headers.Authorization, 'Bearer application-secret');
@@ -33,6 +38,7 @@ for (const scenario of ['approve', 'deny', 'timeout', 'expired-request', 'bad-ex
         assert.deepEqual(JSON.parse(options.body), { request_token: 'temporary' });
         return Response.json(scenario === 'bad-exchange' ? {} : { access_token: 'user-secret', account_id: 'account' });
       }
+      if (revoked) { revoked = false; return new Response('{}', { status: 401 }); }
       assert.equal(options.headers.Authorization, 'Bearer user-secret');
       return Response.json({ results: [] });
     };
@@ -49,12 +55,12 @@ for (const scenario of ['approve', 'deny', 'timeout', 'expired-request', 'bad-ex
           await fetch(valid);
         })();
       } });
-      if (scenario === 'approve') {
+      if (['approve', 'expired-cache', 'revoked-cache', 'reauthorize'].includes(scenario)) {
         assert.equal(await promise, 'user-secret');
         const record = await loadToken(directory);
         assert.equal(record.expires_at, null);
         assert.ok(record.last_validated_at);
-        assert.equal(await authorize(config, { fetchImpl, log: () => assert.fail('Unexpected approval prompt') }), 'user-secret');
+        assert.equal(await authorize({ ...config, reauthorize: false }, { fetchImpl, log: () => assert.fail('Unexpected approval prompt') }), 'user-secret');
       } else await assert.rejects(promise);
       await callbacks;
     } finally { await rm(directory, { recursive: true }); }

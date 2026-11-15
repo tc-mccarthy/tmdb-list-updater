@@ -1,15 +1,26 @@
-# Purpose: Run one CSV-to-TMDB sync; no daemon, ports, or external network.
+# Purpose: Authorize in the browser when needed, sync once, and exit.
 services:
   tmdb-list-updater:
     image: tmdb-list-updater:local
     build: .
     init: true
     restart: "no"
+    # Callback is reachable only from this host; listener runs only during approval.
+    ports:
+      - "127.0.0.1:${AUTH_PORT:-8787}:${AUTH_PORT:-8787}"
     volumes:
       # Inputs are never modified by the container.
       - ./storage:/usr/app/storage:ro
+      # Disposable credential cache survives rebuild; down -v removes it.
+      - auth-cache:/usr/app/auth
     environment:
       TMDB_LIST_URL: ${TMDB_LIST_URL:-}
+      TMDB_APPLICATION_TOKEN: ${TMDB_APPLICATION_TOKEN:-}
+      TOKEN_STORE_PATH: /usr/app/auth
+      TMDB_CALLBACK_URL: ${TMDB_CALLBACK_URL:-http://localhost:8787/auth/callback}
+      AUTH_PORT: ${AUTH_PORT:-8787}
+      AUTH_TIMEOUT_SECONDS: ${AUTH_TIMEOUT_SECONDS:-600}
+      TMDB_REAUTHORIZE: ${TMDB_REAUTHORIZE:-false}
       TMDB_ACCESS_TOKEN: ${TMDB_ACCESS_TOKEN:-}
       CSV_PATH: ${CSV_PATH:-/usr/app/storage/movies.csv}
       UPDATE_MODE: ${UPDATE_MODE:-append}
@@ -20,3 +31,7 @@ services:
       options:
         max-size: "5m"
         max-file: "2"
+
+# Docker initializes this volume from the image with runtime-user ownership.
+volumes:
+  auth-cache:

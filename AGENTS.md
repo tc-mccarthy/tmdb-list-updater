@@ -26,7 +26,7 @@ If a branch does not include a ticket key, use a concise imperative commit subje
 
 - This is a one-shot Node.js CSV-to-TMDB v4 list utility, not an HTTP service.
 - Preserve ./rebuild and ./build-image. Rebuild must propagate the sync exit code and leave the container stopped after completion.
-- Supply credentials, CSV_PATH, UPDATE_MODE, media type, and dry-run settings through Compose environment variables.
+- Supply application credentials, callback settings, CSV_PATH, UPDATE_MODE, media type, and dry-run settings through Compose environment variables. Cache user tokens atomically in the private disposable auth volume; validate before every sync and never invent an expiration.
 - Keep storage/ gitignored and mounted read-only; exclude CSVs and credentials from images.
 - Require tmdb_id, ignore unrelated CSV columns, and validate every input before writes.
 - Append preserves existing membership. Replace adds and verifies desired items before removing extras.

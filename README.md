@@ -4,7 +4,7 @@ One-shot Node.js utility that appends to or replaces membership of an existing T
 
 ## Requirements and quick start
 
-Docker with Compose v2 is the normal runtime. Host development requires Node.js 22+ and Yarn Classic 1.22.22 (`corepack yarn`). No database or incoming HTTP ports are needed. TMDB must be reachable.
+Docker with Compose v2 is the normal runtime. Host development requires Node.js 22+ and Yarn Classic 1.22.22 (`corepack yarn`). No database is needed. Localhost port 8787 is reserved for browser authorization. TMDB must be reachable.
 
 ```bash
 mkdir -p storage
@@ -13,7 +13,9 @@ cp .env.example .env
 ./rebuild
 ```
 
-Use a TMDB **v4 user access token** authorized by the list owner, not an application read access token. See [user authentication](https://developer.themoviedb.org/v4/docs/authentication-user). Obtain and approve a request token, exchange it for a user access token, and supply that token yourself; this utility does not conduct interactive login.
+Set `TMDB_APPLICATION_TOKEN` to your application **API Read Access Token** from [TMDB API settings](https://www.themoviedb.org/settings/api). On startup the app validates its cached user token. When none is valid, it prints a clickable approval URL; approve it in your browser and the localhost callback captures authorization automatically. Sync then continues and the container stops. No manual user-token copying is required. See [TMDB user authentication](https://developer.themoviedb.org/v4/docs/authentication-user).
+
+The disposable `auth-cache` Docker volume stores the user token privately across rebuilds. Expiry metadata is saved when supplied; otherwise expiration is null and the token is checked remotely on startup. `TMDB_REAUTHORIZE=true ./rebuild` requests fresh approval. `docker compose down -v` deletes the cached credentials. Explicit `TMDB_ACCESS_TOKEN` remains an optional override.
 
 `./rebuild` builds the image, runs in the foreground, streams logs, and returns the sync exit code. The container stops on completion or failure. It remains available for `docker compose logs`; `docker compose down` removes it. Runs are manual: replacing the CSV does not trigger a sync.
 
@@ -24,7 +26,13 @@ Compose reads `.env` or shell variables and passes these settings into the conta
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | TMDB_LIST_URL | Required | HTTPS `https://www.themoviedb.org/list/12345` URL; optional slug accepted |
-| TMDB_ACCESS_TOKEN | Required | Owner-authorized v4 user token |
+| TMDB_APPLICATION_TOKEN | Required for new authorization | Application API Read Access Token |
+| TMDB_ACCESS_TOKEN | Empty | Optional owner-authorized user token override |
+| TMDB_REAUTHORIZE | `false` | Ignore cache/override and request fresh approval |
+| AUTH_PORT | `8787` | Callback listener and localhost published port |
+| TMDB_CALLBACK_URL | `http://localhost:8787/auth/callback` | Browser redirect; change alongside port |
+| AUTH_TIMEOUT_SECONDS | `600` | Wait for approval, 1–900 seconds; bounded by request expiry |
+| TOKEN_STORE_PATH | `/usr/app/auth` | Container token directory, fixed in Compose to its volume |
 | CSV_PATH | `/usr/app/storage/movies.csv` | Container path under the read-only storage mount |
 | UPDATE_MODE | `append` | `append` or `replace` |
 | TMDB_MEDIA_TYPE | `movie` | `movie` or `tv`, applied to every CSV ID |
@@ -73,3 +81,5 @@ Repository maintainers own this utility; report reproducible issues through the 
 - Configuration failure: check `.env`, especially `UPDATE_MODE` and boolean spelling (`true`/`false`).
 - Dependency/lint failure: use the documented Node/Yarn versions and a frozen install; rebuild after dependency changes.
 - Partial sync: inspect the summary, fix the cause, preview with dry-run, then rerun. No automatic rollback is attempted.
+
+Browser approval defaults assume Docker and the browser share a host. For a remote Docker host, forward the callback port over SSH (for example `ssh -L 8787:127.0.0.1:8787 your-host`) and keep the localhost callback URL. Callback port conflicts fail before printing the approval link. Denial, expiration, invalid exchange, or timeout stops without syncing. Network outages and HTTP 403 do not cause a fresh prompt. Tokens are never printed; the temporary approval URL is deliberately printed so you can click it.

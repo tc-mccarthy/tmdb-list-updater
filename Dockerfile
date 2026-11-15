@@ -10,5 +10,6 @@ ENV NODE_ENV=production
 COPY --from=dependencies --chown=node:node /usr/app/node_modules ./node_modules
 COPY --chown=node:node package.json index.js start-service ./
 COPY --chown=node:node lib ./lib
+RUN mkdir -p /usr/app/auth && chown node:node /usr/app/auth && chmod 700 /usr/app/auth
 USER node
 CMD ["bash", "./start-service"]
